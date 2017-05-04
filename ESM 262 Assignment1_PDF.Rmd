@@ -125,8 +125,7 @@ final_plot <- ggplot (final_table)+
   geom_point(aes(x = month, y = avg_monthly_rain), col = "red")+
   theme_classic(base_size = 16)+
     theme(legend.position = "bottom")+
-  labs(x = "Month", y = "Magnitude")+
-  scale_x_discrete(name = "Month", labels = final_table$month)
+  labs(x = "Month", y = "Magnitude")
 
 ```
 
