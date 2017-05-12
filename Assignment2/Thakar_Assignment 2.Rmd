@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # PART 1
 
-```{r, include=FALSE}
+```{r, include = FALSE}
 setwd("C:/boxsync/rthakar/Courses/Spring2017/ESM262/EnvInformatics/Assignment2")
 
 library (tidyverse)
@@ -38,7 +38,7 @@ gaz <- gaz_raw %>% select (ï..FEATURE_ID,FEATURE_NAME,
                             SOURCE_LONG_DEC, ELEV_IN_M, MAP_NAME, 
                             DATE_CREATED, DATE_EDITED)
 
-colnames(gaz) <- c("featureID","feature_name","feature_class", "state_alpha", 
+colnames(gaz) <- c("featureID","feature_name","feature_class", "state_alpha",
                    "county_name", "primary_latitude", "primary_longitude", 
                    "source_latitude", "source_longitude", "elevation", 
                    "map_name", "date_created", "date_edited")
@@ -84,14 +84,13 @@ California <- gaz %>%
   filter(state_alpha == "CA")
 ```
 
-
 ## 6. Saving file to disk
+
 Writing final file to the disk as final_file_part1.csv using "|" as separator
 
 ```{r}
 write.table(California, file="California_Data.csv", sep = "|")
 ```
-
 
 # PART 2
 
