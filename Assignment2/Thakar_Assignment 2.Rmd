@@ -1,0 +1,119 @@
+---
+title: "ESM 262Assignment 2"
+author: "Rucha Thakar"
+date: "May 11, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PART 1
+
+Setting working directory
+
+```{r}
+setwd("C:/boxsync/rthakar/Courses/Spring2017/ESM262/EnvInformatics/Assignment2")
+
+library (tidyverse)
+library (dplyr)
+library (gdata)
+library (lubridate)
+library (pander)
+```
+
+Reading in the data as-is
+
+```{r}
+gaz_raw <- read.delim("C:/boxsync/rthakar/Courses/Spring2017/ESM262/EnvInformatics/Assignment2/CA_Features_20170401.txt", sep = "|", as.is = TRUE)
+```
+
+Selecting required columns and converting data frame to tibble
+
+```{r}
+gaz <- gaz_raw %>% select (ï..FEATURE_ID,FEATURE_NAME,FEATURE_CLASS,STATE_ALPHA, COUNTY_NAME, PRIM_LAT_DEC, PRIM_LONG_DEC, SOURCE_LAT_DEC, SOURCE_LONG_DEC, ELEV_IN_M, MAP_NAME, DATE_CREATED, DATE_EDITED)
+
+
+colnames(gaz) <- c("featureID","feature_name","feature_class", "state_alpha", "county_name", "primary_latitude", "primary_longitude", "source_latitude", "source_longitude", "elevation", "map_name", "date_created", "date_edited")
+
+gaz <- as.tibble(gaz)
+```
+
+Change class to appropriate types
+
+```{r}
+gaz$primary_latitude <- as.numeric(gaz$primary_latitude)
+gaz$primary_longitude <- as.numeric(gaz$primary_longitude)
+gaz$source_latitude <- as.numeric(gaz$source_latitude)
+gaz$source_longitude <- as.numeric(gaz$source_longitude)
+gaz$elevation <- as.numeric(gaz$elevation)
+gaz$date_created <- mdy (gaz$date_created)
+gaz$date_edited <- mdy (gaz$date_edited)
+```
+
+According to https://geonames.usgs.gov/domestic/states_fileformat.htm, Records showing "Unknown" and zeros for the latitude and longitude DMS and decimal fields, respectively, indicate that the coordinates of the feature are unknown. They are recorded in the database as zeros to satisfy the format requirements of a numerical data type. They are not errors and do not reference the actual geographic coordinates at 0 latitude, 0 longitude.
+
+```{r}
+gaz <- gaz %>% filter (primary_longitude != 0 | primary_latitude != 0)
+
+#gaz <- unknownToNA(gaz, unknown = c("NA",""))
+```
+
+In addition, drop NA values
+
+```{r}
+gaz <- gaz %>%
+  drop_na(primary_latitude) %>%
+  drop_na(primary_longitude)
+```
+
+Removed all features that do not belong to the state of California, USA
+
+```{r}
+California <- gaz %>% filter(state_alpha == "CA")
+```
+
+Writing final file to the disk as final_file_part1.csv using "|" as separator
+
+```{r}
+write.table(California, file="California_Data.csv", sep = "|")
+```
+
+# PART 2
+
+most-frequently-occuring feature name in California
+
+```{r}
+(California %>% count (feature_name)%>% filter (n == max(n)))
+```
+
+least-frequently-occuring feature class in California
+
+```{r}
+(California %>% count (feature_class)%>% filter (n == min(n)))
+```
+
+approximate center point of each county
+
+Removing empty county names
+
+```{r}
+California <- California %>% filter (county_name != "")
+
+County_Group <- group_by(California, county_name)
+County_Mean <- summarize (County_Group, mean (primary_longitude), mean (primary_latitude))
+```
+
+fractions of the total number of features in each county that are natural vs. man-made
+
+63 feature classes are categorized between natural and man-made according to the classification described in https://geonames.usgs.gov/apex/f?p=gnispq:8:0:::::
+
+```{r}
+
+manmade <- c("Airport", "Bridge", "Building", "Canal", "Cemetery", "Census", "Church", "Civil", "Crossing", "Dam", "Harbor", "Hospital", "Levee", "Locale", "Military", "Pillar", "Populated Place", "Post Pffice", "Reservoir", "School", "Tower", "Tunnel", "Well")
+California$feature <- c(0)
+California$n <- seq (1:nrow(California))
+
+California$feature <- ifelse(California$feature_class %in% manmade, "Manmade", "Natural")
+```
