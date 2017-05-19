@@ -1,0 +1,197 @@
+---
+title: "Assignment 3"
+author: "Rucha Thakar"
+date: "May 19, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("//babylon/co2017/rthakar/Downloads")
+library (ggplot2)
+library (gridExtra)
+library (dplyr)
+library (ggalt)
+library (rvg)
+library (ggthemes)
+require(ggiraph)
+require(lubridate)
+require (doBy)
+```
+
+```{r, include = FALSE, warnings = FALSE}
+thin_deep <- read.table ("resthin.deep.txt", header = T)
+thin_shallow <- read.table ("resthin.shallow.txt", header = T)
+clim <- read.table ("sierraclim.txt", header = T)
+
+apply (thin_deep, 2, class)
+
+thin_deep$scen <- as.factor (thin_deep$scen)
+thin_deep$thin <- as.factor(thin_deep$thin)
+thin_deep$wy <- as.factor(thin_deep$wy)
+
+
+thin_shallow$scen <- as.factor (thin_shallow$scen)
+thin_shallow$thin <- as.factor(thin_shallow$thin)
+thin_shallow$wy <- as.factor(thin_shallow$wy)
+
+intensity_names <- list(
+  '0.5'="Very Low Thinning Intensity",
+  '10'="Low Thinning Intensity",
+  '20'="Moderate Thinning Intensity",
+  '40'="High Thinning Intensity")
+
+return_names <- function(variable,value){
+  return(intensity_names[value])
+}
+```
+
+# Figure 1: Climate Data Visualization
+
+```{r, include = FALSE}
+plotx <- ggplot()+
+  geom_density(data = clim, aes(tmax), fill = "plum", alpha = 0.9)+
+  geom_density(data = clim, aes(tmin), fill = "peachpuff", alpha = 0.9)+
+  labs(x = "Temperature")+
+  theme_classic()+
+  annotate("text", x = -5, y = 0.06, label = "Minimum Temperature")+
+  annotate("text", x = 23, y = 0.06, label = "Maximum Temperature")
+
+ploty <- ggplot()+
+  geom_density(data = clim, aes(rain), fill = "turquoise", alpha = 0.9)+
+  labs(x = "Rain")+
+  theme_classic()
+```
+
+```{r, fig.width=6, fig.height=6}
+grid.arrange(plotx, ploty, nrow =1, ncol =2)
+```
+
+# Figure 2: Monthly relationship between variables and weather, for shallow and deep thinning
+```{r, include = FALSE}
+clim$date <- mdy(paste(clim$month, clim$day, clim$year, sep = "/"))
+
+clim_new <- clim %>% filter (year == "1950" | year == "1960"| year == "1970" | year == "1980")
+
+thin_shallow$date <- mdy(paste(thin_shallow$month, thin_shallow$day, thin_shallow$scen, sep = "/"))
+
+shallow_all <- merge(clim_new, thin_shallow, by = "date")
+
+summary <- summaryBy(rain+tmax+tmin+trans+evap+plantc ~ as.factor(month.x), FUN = c(mean), data = shallow_all)
+
+rain <- summaryBy(rain~as.factor(month.x), FUN = c(sum), data = shallow_all)
+
+plot4 <- ggplot()+
+  geom_col(data = rain, aes (x = as.factor(month.x), y = rain.sum), fill = "turquoise")+
+  scale_y_log10()+
+  theme_few(base_size = 8)+
+  labs(x = "Month", y = "Total Rain (cm) \n (Shallow)")
+
+plot5 <- ggplot()+
+  geom_col(data = summary, aes (x = as.factor(month.x), y = tmax.mean), fill = "turquoise")+
+  theme_few(base_size = 8)+
+  labs(x = "Month", y = "Mean Maximum Temperature \n (Shallow)")
+
+plot6 <- ggplot()+
+  geom_col(data = summary, aes (x = as.factor(month.x), y = trans.mean), fill = "darkolivegreen4")+
+  theme_few(base_size = 8)+
+  scale_y_continuous(limits = c(0,5))+
+  labs(x = "Month", y = "Mean Transpiration \n(Shallow)")
+
+
+plot7 <- ggplot()+
+  geom_col(data = summary, aes (x = as.factor(month.x), y = evap.mean), fill = "darkolivegreen4")+
+  scale_y_continuous(limits = c(0,0.2))+
+  theme_few(base_size = 8)+
+  labs(x = "Month", y = "Mean Evaporation \n (Shallow)")
+
+plot8 <- ggplot()+
+  geom_col(data = summary, aes (x = as.factor(month.x), y = plantc.mean), fill = "darkolivegreen4")+
+  theme_few(base_size = 8)+
+  scale_y_continuous(limits = c(0,5))+
+  labs(x = "Month", y = "Mean Evaporation \n (Shallow)")
+
+####################################
+
+thin_deep$date <- mdy(paste(thin_deep$month, thin_deep$day, thin_deep$scen, sep = "/"))
+
+deep_all <- merge(clim_new, thin_deep, by = "date")
+
+summary_deep <- summaryBy(rain+tmax+tmin+trans+evap+plantc ~ as.factor(month.x), FUN = c(mean), data = deep_all)
+
+rain_deep <- summaryBy(rain~as.factor(month.x), FUN = c(sum), data = deep_all)
+
+plot10 <- ggplot()+
+  geom_col(data = rain_deep, aes (x = as.factor(month.x), y = rain.sum), fill = "turquoise")+
+  scale_y_log10()+
+  theme_few(base_size = 8)+
+  labs(x = "Month", y = "Total Rain (cm) \n (Deep)")
+
+plot11 <- ggplot()+
+  geom_col(data = summary_deep, aes (x = as.factor(month.x), y = tmax.mean), fill = "turquoise")+
+  theme_few(base_size = 8)+
+  labs(x = "Month", y = "Mean Maximum Temperature \n (Deep)")
+
+plot12 <- ggplot()+
+  geom_col(data = summary_deep, aes (x = as.factor(month.x), y = trans.mean), fill = "darkolivegreen3")+
+  theme_few(base_size = 8)+
+  scale_y_continuous(limits = c(0,5))+
+  labs(x = "Month", y = "Mean Transpiration \n(Deep)")
+
+
+plot13 <- ggplot()+
+  geom_col(data = summary_deep, aes (x = as.factor(month.x), y = evap.mean), fill = "darkolivegreen3")+
+  theme_few(base_size = 8)+
+  scale_y_continuous(limits = c(0,0.2))+
+  labs(x = "Month", y = "Mean Evaporation \n (Deep)")
+
+plot14 <- ggplot()+
+  geom_col(data = summary_deep, aes (x = as.factor(month.x), y = plantc.mean), fill = "darkolivegreen3")+
+  scale_y_continuous(limits = c(0,5))+
+  theme_few(base_size = 12)+
+  labs(x = "Month", y = "Mean Evaporation \n (Deep)")
+```
+
+```{r, fig.width=10, fig.height=10}
+grid.arrange(plot10, plot4, plot11, plot5, plot6, 
+             plot12, plot7, plot13, plot8, plot14, 
+             nrow = 5, ncol =2)
+```
+
+# Figure 3: Relationship between parameters for shallow and deep thinning
+
+```{r, include = FALSE, warnings = FALSE}
+plot1 <- ggplot ()+
+  geom_boxplot (data = thin_deep, aes(x = wy, y = plantc), col = "lawngreen")+
+  geom_boxplot (data = thin_shallow, aes(x = wy, y = plantc), col = "darkolivegreen4")+
+  theme_few(base_size = 12)+
+  theme(legend.position = "bottom")+
+  scale_fill_brewer(type="seq", palette="BuGn", name = "Thinning Intensity", labels = c("Low", "Moderate", "High", "Very High"))+
+  scale_y_continuous(breaks =  c(1,2,3,4,5,6))+
+  labs(x = "Years since thinning", y = "Plant Carbon (kgC)")+
+  ggtitle(label= "Plant Carbon as a factor of thinning ")+
+  facet_wrap(~thin_deep$thin,  nrow = 1, ncol = 4, labeller = return_names)
+
+
+plot2 <- ggplot()+
+  geom_smooth (data = thin_deep, aes (x = plantc, y = trans), col = "green")+
+  geom_smooth (data = thin_shallow, aes (x = plantc, y = trans), col = "darkolivegreen4")+
+  facet_wrap(~thin, nrow =4, ncol =1, labeller = return_names)+
+  theme_few()+
+  scale_x_continuous(breaks =  c(1,2,3,4,5,6))+
+  labs(x = "Plant Carbon (kgC)", y = "Transpiration")+
+  ggtitle(label= "Relationship between evaporation and transpiration ")+
+  theme(legend.position = "bottom")
+
+```
+
+```{r, warnings = FALSE, fig.width=10, fig.height=10}
+plot1
+
+plot2
+```
+
+
+
+
+
